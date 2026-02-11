@@ -1,0 +1,3 @@
+module github.com/sminamot/claude-statusline
+
+go 1.25.5
