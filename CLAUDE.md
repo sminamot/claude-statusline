@@ -12,6 +12,9 @@ Claude Code のカスタムステータスライン。stdin から JSON を受�
 # テスト実行
 go test ./...
 
+# 個別テスト実行
+go test -run TestBuildProgressBar ./...
+
 # ビルド & インストール
 go install .
 
@@ -26,8 +29,15 @@ echo '{"model":{"display_name":"Opus 4.6"},"context_window":{"context_window_siz
 - `StatusData` struct: stdin JSON のパース用構造体
 - `buildProgressBar()`: 8段階Unicode端数ブロック + ANSI背景色によるプログレスバー。色は引数で受け取り、塗り・空きとも同じ背景色（`48;5;236m`）で隙間を解消
 - `percentageColor()`: 使用率に応じた4段階ANSIカラー（~50%緑, 50~70%黄, 70~90%オレンジ, 90%~赤）
+- `formatTokenCount()`: トークン数を人間可読形式に変換（500→"500", 46000→"46.0k", 1200000→"1.2M"）
+- `formatDuration()`: ミリ秒を経過時間文字列に変換（"(15m)" or "(1h23m)"）
 - `clockEmoji()`: 時刻に応じた30分刻みの時計絵文字（U+1F550〜U+1F567）
+- `getGitBranch()`: cwdでの現在のgitブランチ名を取得（失敗時は空文字）
 - `main()`: stdin→JSON パース→各パーツ組み立て→2行出力
+
+## Environment Variables
+
+- `CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT`: compaction発生点のパーセンテージ（デフォルト100）。context_window_size × この値% を100%としてプログレスバーを表示する。例: 80に設定すると、コンテキストウィンドウの80%時点で100%表示になる
 
 ## ANSI Color Conventions
 
