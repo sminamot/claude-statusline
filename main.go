@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -123,9 +124,18 @@ func main() {
 	usage := data.ContextWindow.CurrentUsage
 	totalTokens := usage.InputTokens + usage.CacheCreationInputTokens + usage.CacheReadInputTokens
 
+	// CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT: compaction発生点のパーセンテージ（デフォルト80）
+	// context_window_size * limitPct% を100%として表示する
+	limitPct := 100.0
+	if v := os.Getenv("CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT"); v != "" {
+		if parsed, err := strconv.ParseFloat(v, 64); err == nil && parsed > 0 && parsed <= 100 {
+			limitPct = parsed
+		}
+	}
+	effectiveMax := float64(data.ContextWindow.ContextWindowSize) * limitPct / 100
 	var pct float64
-	if data.ContextWindow.ContextWindowSize > 0 {
-		pct = float64(totalTokens) / float64(data.ContextWindow.ContextWindowSize) * 100
+	if effectiveMax > 0 {
+		pct = float64(totalTokens) / effectiveMax * 100
 	}
 
 	now := time.Now()
