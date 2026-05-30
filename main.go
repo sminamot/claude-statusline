@@ -169,15 +169,21 @@ func main() {
 	usage := data.ContextWindow.CurrentUsage
 	totalTokens := usage.InputTokens + usage.CacheCreationInputTokens + usage.CacheReadInputTokens
 
-	// CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT: compaction発生点のパーセンテージ（デフォルト80）
-	// context_window_size * limitPct% を100%として表示する
-	limitPct := 100.0
+	// autocompact閾値 = context_window_size - 33000 (出力予約20k + バッファ13k)
+	// CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT が設定されていればそちらを優先する
+	contextWindowSize := data.ContextWindow.ContextWindowSize
+	var effectiveMax float64
 	if v := os.Getenv("CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT"); v != "" {
 		if parsed, err := strconv.ParseFloat(v, 64); err == nil && parsed > 0 && parsed <= 100 {
-			limitPct = parsed
+			effectiveMax = float64(contextWindowSize) * parsed / 100
 		}
 	}
-	effectiveMax := float64(data.ContextWindow.ContextWindowSize) * limitPct / 100
+	if effectiveMax == 0 && contextWindowSize > 33000 {
+		effectiveMax = float64(contextWindowSize - 33000)
+	}
+	if effectiveMax == 0 {
+		effectiveMax = float64(contextWindowSize)
+	}
 	var pct float64
 	if effectiveMax > 0 {
 		pct = float64(totalTokens) / effectiveMax * 100

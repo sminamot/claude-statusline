@@ -39,7 +39,7 @@ echo '{"model":{"display_name":"Opus 4.6"},"context_window":{"context_window_siz
 
 ## Environment Variables
 
-- `CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT`: compaction発生点のパーセンテージ（デフォルト100）。context_window_size × この値% を100%としてプログレスバーを表示する。例: 80に設定すると、コンテキストウィンドウの80%時点で100%表示になる
+- `CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT`: autocompact閾値のパーセンテージを手動指定するオーバーライド。未設定時はバイナリ内部のソース解析から判明した式 `(context_window_size - 33000) / context_window_size` で自動計算する（Sonnet 4.6/200k→83.5%, Opus 4.8/1M→96.7%）。
 
 ## ANSI Color Conventions
 
