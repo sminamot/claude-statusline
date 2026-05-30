@@ -33,7 +33,9 @@ echo '{"model":{"display_name":"Opus 4.6"},"context_window":{"context_window_siz
 - `formatDuration()`: ミリ秒を経過時間文字列に変換（"(15m)" or "(1h23m)"）
 - `clockEmoji()`: 時刻に応じた30分刻みの時計絵文字（U+1F550〜U+1F567）
 - `getGitBranch()`: cwdでの現在のgitブランチ名を取得（失敗時は空文字）
-- `main()`: stdin→JSON パース→各パーツ組み立て→2行出力
+- `formatResetTime()`: Unix epoch秒とnowを受け取りリセット時刻を整形（同日→"15:04"、別日→"1/2 15:04"、0→空文字）
+- `renderRateWindow()`: RateWindowポインタ1つ分の表示セグメントを組み立て（nil時は空文字）
+- `main()`: stdin→JSON パース→各パーツ組み立て→2〜3行出力（rate_limits存在時に3行目を追加）
 
 ## Environment Variables
 
@@ -49,3 +51,5 @@ echo '{"model":{"display_name":"Opus 4.6"},"context_window":{"context_window_siz
 | 1行目テキスト | ブライトホワイト `\x1b[97m` |
 | 2行目(cwd) | グレー `\033[90m` |
 | プログレスバー背景 | ダークグレー `\x1b[48;5;236m` |
+| レート制限ラベル(5h/7d) | ブライトホワイト `\x1b[97m` |
+| レート制限リセット時刻 | グレー `\x1b[90m` |

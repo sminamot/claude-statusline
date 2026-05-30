@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestFormatTokenCount(t *testing.T) {
@@ -202,6 +203,58 @@ func TestBuildProgressBar(t *testing.T) {
 			if runeCount != width {
 				t.Errorf("buildProgressBar(%.0f, %d) rune length = %d, want %d", pct, width, runeCount, width)
 			}
+		}
+	})
+}
+
+func TestFormatResetTime(t *testing.T) {
+	now := time.Date(2026, 5, 30, 14, 0, 0, 0, time.Local)
+	tests := []struct {
+		name     string
+		resetsAt int64
+		expected string
+	}{
+		{"zero - absent", 0, ""},
+		{"same day evening", time.Date(2026, 5, 30, 18, 0, 0, 0, time.Local).Unix(), "18:00"},
+		{"same day morning - zero padded", time.Date(2026, 5, 30, 9, 5, 0, 0, time.Local).Unix(), "09:05"},
+		{"next day", time.Date(2026, 6, 2, 9, 0, 0, 0, time.Local).Unix(), "6/2 09:00"},
+		{"different year", time.Date(2027, 1, 1, 0, 0, 0, 0, time.Local).Unix(), "1/1 00:00"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := formatResetTime(tt.resetsAt, now)
+			if got != tt.expected {
+				t.Errorf("formatResetTime(%d, now) = %q, want %q", tt.resetsAt, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestRenderRateWindow(t *testing.T) {
+	now := time.Date(2026, 5, 30, 14, 0, 0, 0, time.Local)
+
+	t.Run("nil window returns empty", func(t *testing.T) {
+		if got := renderRateWindow("5h", nil, now); got != "" {
+			t.Errorf("renderRateWindow(nil) = %q, want empty", got)
+		}
+	})
+
+	t.Run("label, percentage and reset time present", func(t *testing.T) {
+		w := &RateWindow{UsedPercentage: 23.5, ResetsAt: time.Date(2026, 5, 30, 18, 0, 0, 0, time.Local).Unix()}
+		got := stripANSI(renderRateWindow("5h", w, now))
+		for _, want := range []string{"5h", "23.5%", "(~18:00)"} {
+			if !strings.Contains(got, want) {
+				t.Errorf("renderRateWindow output %q does not contain %q", got, want)
+			}
+		}
+	})
+
+	t.Run("zero ResetsAt omits reset segment", func(t *testing.T) {
+		w := &RateWindow{UsedPercentage: 80, ResetsAt: 0}
+		got := stripANSI(renderRateWindow("7d", w, now))
+		if strings.Contains(got, "~") {
+			t.Errorf("renderRateWindow with zero ResetsAt should omit reset, got %q", got)
 		}
 	})
 }

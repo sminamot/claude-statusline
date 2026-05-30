@@ -25,10 +25,22 @@ type StatusData struct {
 	} `json:"context_window"`
 	Version string `json:"version"`
 	Cost    struct {
-		TotalCostUSD     float64 `json:"total_cost_usd"`
-		TotalDurationMs  float64 `json:"total_duration_ms"`
+		TotalCostUSD    float64 `json:"total_cost_usd"`
+		TotalDurationMs float64 `json:"total_duration_ms"`
 	} `json:"cost"`
-	Cwd string `json:"cwd"`
+	Cwd        string `json:"cwd"`
+	RateLimits *struct {
+		FiveHour *RateWindow `json:"five_hour"`
+		SevenDay *RateWindow `json:"seven_day"`
+	} `json:"rate_limits"`
+}
+
+// RateWindow は rate_limits.five_hour / seven_day の各ウィンドウ。
+// Claude.ai サブスクライバ(Pro/Max)のみ、かつセッション最初のAPIレスポンス後に出現し、
+// 各ウィンドウは独立して欠落しうるためポインタで保持して欠落と0%を区別する。
+type RateWindow struct {
+	UsedPercentage float64 `json:"used_percentage"`
+	ResetsAt       int64   `json:"resets_at"`
 }
 
 func formatTokenCount(tokens int) string {
@@ -114,6 +126,39 @@ func getGitBranch(dir string) string {
 	return strings.TrimSpace(string(out))
 }
 
+// rateBarWidth はレート制限プログレスバーの幅（既存contextバーと統一）
+const rateBarWidth = 7
+
+// formatResetTime はリセット時刻(Unix epoch秒)を絶対時刻文字列に整形する。
+// 同日なら "15:04"、別日なら "1/2 15:04"。resets_at が欠落(0)なら空文字。
+// time.Now()依存を避けてテスト可能にするため now を引数で受け取る。
+func formatResetTime(resetsAt int64, now time.Time) string {
+	if resetsAt == 0 {
+		return ""
+	}
+	t := time.Unix(resetsAt, 0)
+	if t.Year() == now.Year() && t.YearDay() == now.YearDay() {
+		return t.Format("15:04")
+	}
+	return t.Format("1/2 15:04")
+}
+
+// renderRateWindow は1つのレート制限ウィンドウ(5h/7d)の表示セグメントを組み立てる。
+// w が nil(欠落)なら空文字を返し、呼び出し側で連結時にスキップする。
+func renderRateWindow(label string, w *RateWindow, now time.Time) string {
+	if w == nil {
+		return ""
+	}
+	pctDisplay := math.Floor(w.UsedPercentage*10) / 10
+	color := percentageColor(pctDisplay)
+	bar := buildProgressBar(w.UsedPercentage, rateBarWidth, color)
+	seg := fmt.Sprintf("\x1b[97m%s\x1b[0m %s %s%.1f%%\x1b[0m", label, bar, color, pctDisplay)
+	if reset := formatResetTime(w.ResetsAt, now); reset != "" {
+		seg += fmt.Sprintf(" \x1b[90m(~%s)\x1b[0m", reset)
+	}
+	return seg
+}
+
 func main() {
 	var data StatusData
 	if err := json.NewDecoder(os.Stdin).Decode(&data); err != nil {
@@ -182,4 +227,19 @@ func main() {
 
 	fmt.Println(line1)
 	fmt.Println(line2)
+
+	// 3行目: プラン使用制限（5時間/週間）。rate_limits や各ウィンドウは
+	// 欠落しうる（Pro/Max以外・セッション開始直後など）ので、存在するものだけ表示。
+	if data.RateLimits != nil {
+		var segs []string
+		if s := renderRateWindow("5h", data.RateLimits.FiveHour, now); s != "" {
+			segs = append(segs, s)
+		}
+		if s := renderRateWindow("7d", data.RateLimits.SevenDay, now); s != "" {
+			segs = append(segs, s)
+		}
+		if len(segs) > 0 {
+			fmt.Println("⏳ " + strings.Join(segs, "  "))
+		}
+	}
 }
