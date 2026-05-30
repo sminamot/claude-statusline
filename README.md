@@ -15,15 +15,20 @@ go install github.com/sminamot/claude-statusline@latest
 {
   "statusLine": {
     "type": "command",
-    "command": "CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT=83.5 claude-statusline"
+    "command": "claude-statusline"
   }
 }
 ```
 
+The autocompact threshold is calculated automatically from `context_window_size`:
+
+| Model | Context | Autocompact threshold |
+|---|---|---|
+| Sonnet 4.6 | 200k | 167,000 tokens (83.5%) |
+| Opus 4.8 | 1M | 967,000 tokens (96.7%) |
+
 ### CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT
 
-Specifies the percentage of the context window at which compaction occurs. Defaults to `100`.
+Optional override for the autocompact threshold percentage. By default, it is auto-calculated as `(context_window_size - 33000) / context_window_size`.
 
-For example, setting it to `83.5` treats 83.5% of `context_window_size` as 100% on the progress bar, so the bar fills up right when compaction triggers.
-
-You can check the Autocompact buffer value by running the `/context` command in Claude Code.
+Set this only if you need to override the threshold (e.g. when using `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` or `CLAUDE_CODE_AUTO_COMPACT_WINDOW`).
