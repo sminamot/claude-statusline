@@ -39,7 +39,7 @@ echo '{"model":{"display_name":"Opus 4.6"},"context_window":{"context_window_siz
 
 ## Environment Variables
 
-- `CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT`: autocompact閾値のパーセンテージを手動指定するオーバーライド。未設定時はバイナリ内部のソース解析から判明した式 `(context_window_size - 33000) / context_window_size` で自動計算する（Sonnet 4.6/200k→83.5%, Opus 4.8/1M→96.7%）。
+- `CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT`: 100%とみなすトークン数をパーセンテージで手動指定するオーバーライド。未設定時は `context_window_size` を100%とする（`/context` コマンドと同じ基準）。
 
 ## ANSI Color Conventions
 

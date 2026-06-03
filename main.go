@@ -169,8 +169,8 @@ func main() {
 	usage := data.ContextWindow.CurrentUsage
 	totalTokens := usage.InputTokens + usage.CacheCreationInputTokens + usage.CacheReadInputTokens
 
-	// autocompact閾値 = context_window_size - 33000 (出力予約20k + バッファ13k)
-	// CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT が設定されていればそちらを優先する
+	// CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT が設定されていればその割合を優先する
+	// 未設定時はコンテキストウィンドウサイズ全体を100%とする（/context コマンドと同じ基準）
 	contextWindowSize := data.ContextWindow.ContextWindowSize
 	var effectiveMax float64
 	if v := os.Getenv("CLAUDE_STATUSLINE_CONTEXT_LIMIT_PCT"); v != "" {
@@ -178,10 +178,7 @@ func main() {
 			effectiveMax = float64(contextWindowSize) * parsed / 100
 		}
 	}
-	if effectiveMax == 0 && contextWindowSize > 33000 {
-		effectiveMax = float64(contextWindowSize - 33000)
-	}
-	if effectiveMax == 0 {
+	if effectiveMax == 0 && contextWindowSize > 0 {
 		effectiveMax = float64(contextWindowSize)
 	}
 	var pct float64
