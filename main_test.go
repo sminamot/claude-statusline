@@ -207,6 +207,34 @@ func TestBuildProgressBar(t *testing.T) {
 	})
 }
 
+func TestParseEnabled(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  map[string]bool
+	}{
+		{"empty string", "", map[string]bool{}},
+		{"single", "session_id", map[string]bool{"session_id": true}},
+		{"multiple", "session_id,foo", map[string]bool{"session_id": true, "foo": true}},
+		{"trims spaces", " session_id , foo ", map[string]bool{"session_id": true, "foo": true}},
+		{"ignores empty items", "session_id,,", map[string]bool{"session_id": true}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseEnabled(tt.input)
+			if len(got) != len(tt.want) {
+				t.Fatalf("parseEnabled(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+			for k := range tt.want {
+				if !got[k] {
+					t.Errorf("parseEnabled(%q) missing key %q (got %v)", tt.input, k, got)
+				}
+			}
+		})
+	}
+}
+
 func TestFormatResetTime(t *testing.T) {
 	now := time.Date(2026, 5, 30, 14, 0, 0, 0, time.Local)
 	tests := []struct {

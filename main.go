@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -29,6 +30,7 @@ type StatusData struct {
 		TotalDurationMs float64 `json:"total_duration_ms"`
 	} `json:"cost"`
 	Cwd        string `json:"cwd"`
+	SessionID  string `json:"session_id"`
 	RateLimits *struct {
 		FiveHour *RateWindow `json:"five_hour"`
 		SevenDay *RateWindow `json:"seven_day"`
@@ -116,6 +118,18 @@ func buildProgressBar(pct float64, width int, color string) string {
 	return sb.String()
 }
 
+// parseEnabled は --enable の値(カンマ区切り)をオプション機能名の集合に変換する。
+// 例: "session_id" や "session_id,foo" を map[string]bool にする。
+func parseEnabled(s string) map[string]bool {
+	m := make(map[string]bool)
+	for _, item := range strings.Split(s, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			m[item] = true
+		}
+	}
+	return m
+}
+
 func getGitBranch(dir string) string {
 	cmd := exec.Command("git", "branch", "--show-current")
 	cmd.Dir = dir
@@ -160,6 +174,10 @@ func renderRateWindow(label string, w *RateWindow, now time.Time) string {
 }
 
 func main() {
+	enableFlag := flag.String("enable", "", "オプション表示機能をカンマ区切りで有効化する (例: session_id)")
+	flag.Parse()
+	enabled := parseEnabled(*enableFlag)
+
 	var data StatusData
 	if err := json.NewDecoder(os.Stdin).Decode(&data); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse JSON: %v\n", err)
@@ -226,7 +244,12 @@ func main() {
 	if home, err := os.UserHomeDir(); err == nil && strings.HasPrefix(cwd, home) {
 		cwd = "~" + cwd[len(home):]
 	}
-	line2 := fmt.Sprintf("\x1b[90m%s\x1b[0m", cwd)
+	// --enable session_id 指定時のみ、cwd の後ろに session_id をフル表示（同じグレー）
+	line2 := fmt.Sprintf("\x1b[90m%s", cwd)
+	if enabled["session_id"] && data.SessionID != "" {
+		line2 += " | " + data.SessionID
+	}
+	line2 += "\x1b[0m"
 
 	fmt.Println(line1)
 	fmt.Println(line2)

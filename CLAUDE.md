@@ -32,10 +32,15 @@ echo '{"model":{"display_name":"Opus 4.6"},"context_window":{"context_window_siz
 - `formatTokenCount()`: トークン数を人間可読形式に変換（500→"500", 46000→"46.0k", 1200000→"1.2M"）
 - `formatDuration()`: ミリ秒を経過時間文字列に変換（"(15m)" or "(1h23m)"）
 - `clockEmoji()`: 時刻に応じた30分刻みの時計絵文字（U+1F550〜U+1F567）
+- `parseEnabled()`: `--enable` の値（カンマ区切り）をオプション機能名の集合（`map[string]bool`）に変換
 - `getGitBranch()`: cwdでの現在のgitブランチ名を取得（失敗時は空文字）
 - `formatResetTime()`: Unix epoch秒とnowを受け取りリセット時刻を整形（同日→"15:04"、別日→"1/2 15:04"、0→空文字）
 - `renderRateWindow()`: RateWindowポインタ1つ分の表示セグメントを組み立て（nil時は空文字）
-- `main()`: stdin→JSON パース→各パーツ組み立て→2〜3行出力（rate_limits存在時に3行目を追加）
+- `main()`: `--enable` フラグ解析→stdin→JSON パース→各パーツ組み立て→2〜3行出力（rate_limits存在時に3行目を追加。`--enable session_id` 指定時は2行目のcwd末尾に session_id をフル表示）
+
+## Command-line Options
+
+- `--enable`: オプション表示機能をカンマ区切りで有効化する。現在サポートするのは `session_id` のみ。`--enable session_id` を指定すると、2行目のcwdの後ろに ` | <session_id>` をフル表示する（`/resume` でのコピペ用途）。色はcwdと同じグレー。stdin JSON の `session_id` フィールドを使用。
 
 ## Environment Variables
 
